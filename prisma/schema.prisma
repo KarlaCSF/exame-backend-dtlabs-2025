@@ -1,0 +1,19 @@
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+generator db {
+    provider             = "prisma-client-py"
+    interface            = "asyncio"
+    recursive_type_depth = 5
+}
+
+model ServerData {
+    server_ulid String   @id
+    timestamp   DateTime
+    temperature Float?
+    humidity    Float?
+    voltage     Float?
+    current     Float?
+}
