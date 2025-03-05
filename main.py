@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Literal
 from models.ServerData import ServerData, SensorType
 from prisma import Prisma
+from ulid import ULID
 
 db = Prisma()
 
@@ -105,3 +106,14 @@ async def read_data(
         formatted_result.append(sensor_data)
 
     return formatted_result
+
+@app.post("/servers")
+async def create_server(server_name: str):
+    ulid = str(ULID())
+
+    server = await db.server.create(data={
+        'ulid': ulid,
+        'name': server_name
+    })
+
+    return server

@@ -9,8 +9,15 @@ generator db {
     recursive_type_depth = 5
 }
 
+model Server {
+    ulid String @id
+    name String
+    data ServerData[]
+}
+
 model ServerData {
-    server_ulid String   @id
+    server Server @relation(fields: [server_ulid], references: [ulid])
+    server_ulid String  @id
     timestamp   DateTime
     temperature Float?
     humidity    Float?
