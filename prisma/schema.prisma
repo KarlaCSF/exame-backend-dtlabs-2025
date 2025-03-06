@@ -10,14 +10,14 @@ generator db {
 }
 
 model Server {
-    ulid String @id
+    ulid String       @id
     name String
     data ServerData[]
 }
 
 model ServerData {
-    server Server @relation(fields: [server_ulid], references: [ulid])
-    server_ulid String  @id
+    server      Server   @relation(fields: [server_ulid], references: [ulid])
+    server_ulid String   @id
     timestamp   DateTime
     temperature Float?
     humidity    Float?
