@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Literal
 from models.ServerData import ServerData, SensorType
 from prisma import Prisma
@@ -26,7 +26,7 @@ async def register_data(serverData: ServerData):
 
 
 @app.get("/data")
-async def read_data(
+async def get_data(
     server_ulid: str | None = None,
     start_time: datetime | None = None,
     end_time: datetime | None = None,
@@ -65,7 +65,7 @@ async def read_data(
         having_clause = f"HAVING AVG({sensor_type.value}) IS NOT NULL"
 
     else:
-        sensor_columns = f"""
+        sensor_columns = """
             AVG(temperature) AS temperature,
             AVG(humidity) AS humidity,
             AVG(voltage) AS voltage,
@@ -107,13 +107,46 @@ async def read_data(
 
     return formatted_result
 
+
 @app.post("/servers")
 async def create_server(server_name: str):
     ulid = str(ULID())
 
-    server = await db.server.create(data={
-        'ulid': ulid,
-        'name': server_name
-    })
+    server = await db.server.create(data={"ulid": ulid, "name": server_name})
 
     return server
+
+
+async def is_online(server_id):
+    return await db.serverdata.find_first(
+        where={
+            "server_ulid": server_id,
+            "timestamp": {"gte": datetime.now() - timedelta(days=10)},
+        }
+    )
+
+@app.get("/health/all")
+async def get_all_servers():
+    result = await db.server.find_many()
+
+    response = []
+    for item in result:
+        item = item.model_dump(exclude_none=True)
+        item["status"] = "online" if await is_online(item['ulid']) else "offline"
+        response.append(item)
+
+    return response
+
+@app.get("/health/{server_id}")
+async def get_server(server_id: str):
+    status = "online" if await is_online(server_id) else "offline"
+
+    result = await db.server.find_first(where={"ulid": server_id})
+
+    if not result:
+        return {"error": "Server not found"}
+
+    response = result.model_dump(exclude_none=True)
+    response["status"] = status
+
+    return response
